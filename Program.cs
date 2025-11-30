@@ -364,7 +364,7 @@ public class Joc
                     }
                 }
 
-                if (carteAleasa.valoare == Valoare.Trei || carteAleasa.valoare == Valoare.Patru)
+                if (i==0 && (carteAleasa.valoare == Valoare.Trei || carteAleasa.valoare == Valoare.Patru))
                 {
                     Valoare valoarePereche = (carteAleasa.valoare == Valoare.Trei) ? Valoare.Patru : Valoare.Trei;
                     bool arePerechea = false;
