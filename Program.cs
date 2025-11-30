@@ -74,15 +74,21 @@ public class Joc
     public List<Carte> CartiCastigateEchipa1 = new List<Carte>(); 
     public List<Carte> CartiCastigateEchipa2 = new List<Carte>();
     
-    public Joc()
+    public int AnunturiEchipa1 = 0;
+    public int AnunturiEchipa2 = 0;
+    
+    public string NumeEchipa1 => $"{jucatori[0].nume}-{jucatori[2].nume}";
+    public string NumeEchipa2 => $"{jucatori[1].nume}-{jucatori[3].nume}";
+    public Joc(List<string> numeJucatori)
     {
         pachet=new List<Carte>();
         jucatori=new List<Jucator>();
         
-        jucatori.Add(new Jucator("Jucator 1"));
-        jucatori.Add(new Jucator("Jucator 2"));
-        jucatori.Add(new Jucator("Jucator 3"));
-        jucatori.Add(new Jucator("Jucator 4"));
+        for (int i = 0; i < 4; i++)
+        {
+            string nume = (numeJucatori.Count > i) ? numeJucatori[i] : $"Jucator {i + 1}";
+            jucatori.Add(new Jucator(nume));
+        }
     }
 
     public void GenereazaPachet()
@@ -140,14 +146,15 @@ public class Joc
         for (int i = 0; i < 4; i++)
         {
             Console.Clear();
-            Console.WriteLine("LICITATIE");
-            Console.WriteLine($"Record actual: {puncte} puncte.");
+            Console.WriteLine($"SCOR GLOBAL | {NumeEchipa1}: {ScorEchipa1}  vs  {NumeEchipa2}: {ScorEchipa2}");
+            Console.WriteLine("-LICITATIE-");
+            Console.WriteLine($"Licitatie actuala: {jucatori[index_jucator].nume} ({puncte} puncte).");
             Jucator temp = jucatori[i];
             Console.WriteLine($"\nEste randul lui {temp.nume}");
             Console.WriteLine("Cartile tale sunt:");
             foreach(var c in temp.mana) 
                 Console.WriteLine(c + ", ");
-            Console.WriteLine($"S-a licitat pana acum: {puncte} puncte. Introdu oferta ta (mai mare decat {puncte}) sau scrie 'pas':");
+            Console.WriteLine($"Liciteaza mai mult de {puncte} puncte sau scrie 'pas'.");
             string input = Console.ReadLine();
             if (input == "pas")
             {
@@ -165,7 +172,7 @@ public class Joc
                     }
                     else
                     {
-                        Console.WriteLine("Oferta invalida (prea mica sau mai mare decat 4). Se considera 'pas'.");
+                        Console.WriteLine("Oferta invalida. Se considera 'pas'.");
                     }
                 }
                 else
@@ -180,11 +187,20 @@ public class Joc
         puncte_max = puncte;
         Console.WriteLine($"\nLicitatia s-a incheiat! Castigator: {jucatori[index_jucator].nume} cu {puncte_max} puncte mari.");
         alegeTromf(jucatori[index_jucator]);
+        Console.WriteLine("\nApasa ENTER pentru a trece la alegerea tromfului.");
+        Console.ReadLine();
     }
     public void alegeTromf(Jucator castigator)
     {
-        Console.WriteLine($"\n{castigator.nume}, te rog alege TROMFUL.");
-        Console.WriteLine("Optiuni: 0=Rosu, 1=Duba, 2=Verde, 3=Ghinda");
+        Console.Clear();
+        Console.WriteLine($"SCOR GLOBAL | {NumeEchipa1}: {ScorEchipa1}  vs  {NumeEchipa2}: {ScorEchipa2}");
+        Console.WriteLine($"\n{castigator.nume}, ai castigat licitatia! Alege TROMFUL.");
+        Console.WriteLine("Cartile tale sunt:\n");
+        foreach (var c in castigator.mana)
+        {
+            Console.WriteLine($"{c}");
+        }
+        Console.WriteLine("\nOptiuni: 0=Rosu, 1=Duba, 2=Verde, 3=Ghinda");
         bool alegere = false;
         while (!alegere)
         {
@@ -278,6 +294,8 @@ public class Joc
         int indexJucatorCurent = index_jucator;
         CartiCastigateEchipa1.Clear();
         CartiCastigateEchipa2.Clear();
+        AnunturiEchipa1 = 0;
+        AnunturiEchipa2 = 0;
         for (int tura = 1; tura <= 6; tura++)
         {
             List<Tuple<Jucator,Carte>>cartiJos=new List<Tuple<Jucator, Carte>>();
@@ -288,6 +306,9 @@ public class Joc
                 Jucator jucator = jucatori[indexReal];
                 Console.Clear(); 
                 Console.WriteLine($"--- TURA {tura} / 6 ---");
+                Console.WriteLine("------------------------------------------");
+                Console.WriteLine($"SCOR GLOBAL | {NumeEchipa1}: {ScorEchipa1}  vs  {NumeEchipa2}: {ScorEchipa2}");
+                Console.WriteLine("------------------------------------------");
                 Console.WriteLine($"TROMF: {tromf} | Puncte licitate: {puncte_max} puncte");
                 Console.WriteLine("------------------------------------------");
                 Console.Write("Masa: ");
@@ -317,7 +338,18 @@ public class Joc
                     if (int.TryParse(input, out index) && index >= 0 && index < jucator.mana.Count)
                     {
                         carteAleasa=jucator.mana[index];
-                        if (Validare(carteAleasa, jucator, primaCarte))
+                        bool areTromfInMana = false;
+                        foreach(var c in jucator.mana)
+                        {
+                            if (c.culoare == tromf) 
+                                areTromfInMana = true;
+                        }
+
+                        if (tura == 1 && i == 0 && areTromfInMana && carteAleasa.culoare != tromf)
+                        {
+                            Console.WriteLine($"REGULA: Fiind prima tura, esti OBLIGAT sa iesi cu TROMF ({tromf})!");
+                        }
+                        else if (Validare(carteAleasa, jucator, primaCarte))
                         {
                             mutareCorecta = true;
                         }
@@ -329,6 +361,30 @@ public class Joc
                     else
                     {
                         Console.WriteLine("Index gresit. Alege un numar din lista ta.");
+                    }
+                }
+
+                if (carteAleasa.valoare == Valoare.Trei || carteAleasa.valoare == Valoare.Patru)
+                {
+                    Valoare valoarePereche = (carteAleasa.valoare == Valoare.Trei) ? Valoare.Patru : Valoare.Trei;
+                    bool arePerechea = false;
+
+                    foreach (var c in jucator.mana)
+                    {
+                        if(c.culoare==carteAleasa.culoare && c.valoare == valoarePereche)
+                            arePerechea = true;
+                    }
+
+                    if (arePerechea)
+                    {
+                        int puncteAnunt=(carteAleasa.culoare == tromf) ? 40 : 20;
+                        Console.WriteLine($"! STRIGARE: {puncteAnunt} PUNCTE !");
+                        if(indexReal==0 || indexReal==2)
+                            AnunturiEchipa1+=puncteAnunt;
+                        else
+                        {
+                            AnunturiEchipa2+=puncteAnunt;
+                        }
                     }
                 }
                 Console.WriteLine($"{jucator.nume} a jucat: {carteAleasa}");
@@ -344,13 +400,13 @@ public class Joc
             {
                 foreach(var par in cartiJos) 
                     CartiCastigateEchipa1.Add(par.Item2);
-                Console.WriteLine("Mana merge la Echipa 1 (Nord-Sud).");
+                Console.WriteLine($"Mana merge la Echipa {NumeEchipa1}");
             }
             else
             {
                 foreach(var par in cartiJos) 
                     CartiCastigateEchipa2.Add(par.Item2);
-                Console.WriteLine("Mana merge la Echipa 2 (Est-Vest).");
+                Console.WriteLine($"Mana merge la Echipa {NumeEchipa2}.");
             }
             indexJucatorCurent = indexCastigator;
         
@@ -372,17 +428,20 @@ public class Joc
         foreach (var c in CartiCastigateEchipa2) 
             pctMiciE2 += c.getPuncte();
         
-        int pctMariE1 = pctMiciE1 / 33;
-        int pctMariE2 = pctMiciE2 / 33;
+        int totalE1 = pctMiciE1 + AnunturiEchipa1;
+        int totalE2 = pctMiciE2 + AnunturiEchipa2;
+        
+        int pctMariE1 = totalE1 / 33;
+        int pctMariE2 = totalE2 / 33;
 
-        Console.WriteLine($"Puncte Mici -> Echipa 1: {pctMiciE1} | Echipa 2: {pctMiciE2}");
-        Console.WriteLine($"Puncte Mari Realizate -> Echipa 1: {pctMariE1} | Echipa 2: {pctMariE2}");
+        Console.WriteLine($"Puncte Mici -> {NumeEchipa1}: {totalE1} | {NumeEchipa2}: {totalE2}");
+        Console.WriteLine($"Puncte Mari Realizate -> {NumeEchipa1}: {pctMariE1} | {NumeEchipa2}: {pctMariE2}");
         
         bool echipa1ALicitat = (index_jucator == 0 || index_jucator == 2);
         
         if (echipa1ALicitat)
         {
-            Console.WriteLine($"Echipa 1 a licitat {puncte_max}.");
+            Console.WriteLine($"Echipa {NumeEchipa1} a licitat {puncte_max}.");
             if (pctMariE1 >= puncte_max)
             {
                 Console.WriteLine("Au facut punctele! Se adauga punctele realizate.");
@@ -397,7 +456,7 @@ public class Joc
         }
         else
         {
-            Console.WriteLine($"Echipa 2 a licitat {puncte_max}.");
+            Console.WriteLine($"Echipa {NumeEchipa2} a licitat {puncte_max}.");
             if (pctMariE2 >= puncte_max)
             {
                 Console.WriteLine("Au facut punctele! Se adauga punctele realizate.");
@@ -412,8 +471,8 @@ public class Joc
         }
 
         Console.WriteLine("\n--- SCOR GLOBAL ---");
-        Console.WriteLine($"Echipa 1 (Nord/Sud): {ScorEchipa1}");
-        Console.WriteLine($"Echipa 2 (Est/Vest): {ScorEchipa2}");
+        Console.WriteLine($"Echipa {NumeEchipa1}: {ScorEchipa1}");
+        Console.WriteLine($"Echipa {NumeEchipa2}: {ScorEchipa2}");
         Console.WriteLine("Apasa Enter pentru a continua...");
         Console.ReadLine();
     }
@@ -435,7 +494,7 @@ public class Program
             Console.Write("Alege o optiune: ");
 
             string optiune = Console.ReadLine();
-            
+
             if (optiune == "1")
             {
                 Console.Clear();
@@ -457,27 +516,57 @@ public class Program
         }
     }
 
+    public static List<string> CitesteNumeJucatori()
+    {
+        Console.Clear();
+        Console.WriteLine("==============================");
+        Console.WriteLine("     CONFIGURARE JUCATORI     ");
+        Console.WriteLine("==============================");
+
+        List<string> nume = new List<string>();
+        string[] echipe = { "Nord (Echipa 1)", "Est (Echipa 2)", "Sud (Echipa 1)", "Vest (Echipa 2)" };
+
+        for (int i = 0; i < 4; i++)
+        {
+            Console.Write($"Introdu nume pentru {echipe[i]}: ");
+            string input = Console.ReadLine();
+
+            // Daca utilizatorul da doar Enter, punem un nume default
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                input = $"Jucator {i + 1}";
+            }
+
+            nume.Add(input);
+        }
+
+        return nume;
+    }
+
     public static void JoacaPartida(int puncteTarget)
     {
-        Joc joc = new Joc();
+        List<string> numeJucatori = CitesteNumeJucatori();
+        Joc joc = new Joc(numeJucatori);
         bool avemCastigator = false;
         while (!avemCastigator)
         {
-            joc.Start(); 
+            joc.Start();
             joc.Licitatie();
             joc.Joc6Ture();
             joc.CalculeazaScor();
             if (joc.ScorEchipa1 >= puncteTarget)
             {
                 Console.Clear();
-                Console.WriteLine("FELICITARI! Echipa 1 (Nord/Sud) a CASTIGAT partida!");
+                Console.WriteLine($"   FELICITARI ECHIPA {joc.NumeEchipa1}!   ");
+                Console.WriteLine("          ATI CASTIGAT PARTIDA!           ");
                 avemCastigator = true;
                 Console.ReadLine();
             }
             else if (joc.ScorEchipa2 >= puncteTarget)
             {
                 Console.Clear();
-                Console.WriteLine("FELICITARI! Echipa 2 (Est/Vest) a CASTIGAT partida!");
+                Console.WriteLine($"   FELICITARI ECHIPA {joc.NumeEchipa2}!   ");
+                Console.WriteLine("          ATI CASTIGAT PARTIDA!           ");
                 avemCastigator = true;
                 Console.ReadLine();
             }
